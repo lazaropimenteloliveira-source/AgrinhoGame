@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Projeto Agrinho — Demo</title>
+  <style>
+    :root{--accent:#2b9348;--bg:#f3f7f2;--panel:#ffffff;--muted:#666;}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:var(--bg); color:#0b2a1a}
+    header{background:linear-gradient(90deg,var(--accent),#1b793f); color:white; padding:18px 20px}
+    .container{max-width:1100px;margin:18px auto;padding:12px}
+    .grid{display:flex;gap:12px}
+    .panel{background:var(--panel);border-radius:10px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+    .left{flex:1;min-width:320px}
+    .right{width:360px}
+    button.btn{background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #ddd;color:var(--muted)}
+    .title{font-size:18px;margin-bottom:8px}
+    .hud{display:flex;gap:8px;flex-wrap:wrap}
+    .hud .item{background:#fff;padding:8px;border-radius:8px;border:1px solid #eee;min-width:110px}
+    #gameArea{height:420px;position:relative;overflow:hidden;border-radius:8px;border:1px solid #e6efe8;background:linear-gradient(#dff0da,#e9f7ee);display:flex;align-items:flex-end;justify-content:center}
+    #field{position:relative;width:100%;height:100%}
+    #player{position:absolute;width:56px;height:56px;border-radius:8px;background:linear-gradient(#ffefb5,#ffd36b);display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .catalog{max-height:420px;overflow:auto}
+    .char{display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px dashed #eee}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+    .modal{background:white;padding:18px;border-radius:12px;max-width:720px;width:96%}
+    .small{font-size:13px;color:var(--muted)}
+    .alerts{max-height:140px;overflow:auto}
+    footer{padding:12px;text-align:center;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.grid{flex-direction:column}.right{width:auto}}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto">
+      <div><strong>Projeto Agrinho</strong> — Demo educativa</div>
+      <div class="small">Responsabilidade: regar, recolher, agrotóxicos, alertas</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="grid">
+      <div class="left panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="title">Jogo — Layout inicial</div>
+            <div class="small">Ao abrir o jogo, veja o layout e use os botões abaixo.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button id="playBtn" class="btn">Jogar</button>
+            <button id="charsBtn" class="btn">Personagens</button>
+            <button id="notifyRequest" class="ghost">Ativar alertas</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" class="hud">
+          <div class="item">Dólares: <strong id="dollars">0.00</strong></div>
+          <div class="item">Reais: <strong id="reals">0.00</strong></div>
+          <div class="item">Sementes: <strong id="seeds">0</strong></div>
+          <div class="item">Gemas: <strong id="gems">0</strong></div>
+          <div class="item">Alertas: <strong id="alertsCount">0</strong></div>
+        </div>
+
+        <div id="gameArea" style="margin-top:12px" class="panel">
+          <div id="field">
+            <!-- player -->
+            <div id="player" style="left:48%;bottom:20px">P</div>
+            <!-- simulated plants (just visual dots) -->
+          </div>
+        </div>
+
+        <div class="controls" style="margin-top:10px">
+          <button id="waterMachines" class="btn">Máquinas: Regar</button>
+          <button id="collectMachines" class="btn">Máquinas: Colher</button>
+          <button id="sprayMachines" class="btn">Máquinas: Agrotóxico</button>
+          <button id="spinRoulette" class="btn">Girar Roleta</button>
+          <button id="simulateTick" class="ghost">Simular Tick</button>
+          <div style="margin-left:auto" class="small">Use WASD / setas para mover; toque para mover no celular.</div>
+        </div>
+
+        <div style="margin-top:10px" class="panel small">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong>Alertas</strong></div>
+            <div class="small">Mensagens recentes</div>
+          </div>
+          <div id="alertsList" class="alerts" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="right panel">
+        <div class="title">Loja Rápida / Roleta</div>
+        <div class="small">Probabilidades: dólar/real 50%, sementes 25%, gemas 5% (restante sem prêmio).</div>
+        <div style="margin-top:10px">
+          <button id="openShop" class="btn">Abrir Loja</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="title">Personagem atual</div>
+          <div id="currentChar" class="small">Nenhum</div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="title">Roleta</div>
+          <div id="rouletteResult" class="small">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Exemplo técnico — adapte para engine (LibGDX/Android) e publique no Google Play conforme instruções do README.
+  </footer>
+
+  <!-- Modal templates -->
+  <div id="modalRoot"></div>
+
+  <script>
+    // Estado do jogo (salvo localmente)
+    const state = {
+      dollars: 0.0,
+      reals: 0.0,
+      seeds: 0,
+      gems: 0,
+      alerts: [],
+      ownedChars: new Set(),
+      catalog: []
+    };
+
+    // Popula catálogo com as quantidades solicitadas:
+    function createCatalog() {
+      const push = (id, name, rarity, pd, pr, free=false) => state.catalog.push({id,name,rarity,priceDollars:pd,priceReals:pr,free});
+      // 2 gratuitos
+      for(let i=0;i<2;i++) push(`free-${i}`, `Grátis ${i+1}`, 'FREE',0,0,true), state.ownedChars.add(`free-${i}`);
+      // 25 comuns
+      for(let i=0;i<25;i++) push(`common-${i}`, `Comum ${i+1}`, 'COMMON',0.99,3.99);
+      // 25 incomuns
+      for(let i=0;i<25;i++) push(`uncommon-${i}`, `Incomum ${i+1}`, 'UNCOMMON',1.99,7.99);
+      // 25 menos baratas (tratadas como common barato)
+      for(let i=0;i<25;i++) push(`lesscheap-${i}`, `MenosCara ${i+1}`, 'COMMON',0.49,1.99);
+      // 9 raras
+      for(let i=0;i<9;i++) push(`rare-${i}`, `Rara ${i+1}`, 'RARE',4.99,19.99);
+      // 15 ultra-raras
+      for(let i=0;i<15;i++) push(`ultra-${i}`, `UltraRara ${i+1}`, 'ULTRA_RARE',9.99,39.99);
+      // 10 lendarias
+      for(let i=0;i<10;i++) push(`legend-${i}`, `Lendária ${i+1}`, 'LEGENDARY',19.99,79.99);
+      // 50 especiais (preços muito baixos como solicitado)
+      for(let i=0;i<50;i++) push(`special-${i}`, `Especial ${i+1}`, 'SPECIAL',0.05,0.20);
+    }
+
+    // Persistência
+    function loadState() {
+      const s = localStorage.getItem('agrinho_state_v1');
+      if (!s) return;
+      try{
+        const parsed = JSON.parse(s);
+        state.dollars = parsed.dollars||0;
+        state.reals = parsed.reals||0;
+        state.seeds = parsed.seeds||0;
+        state.gems = parsed.gems||0;
+        state.alerts = parsed.alerts||[];
+        state.ownedChars = new Set(parsed.ownedChars||[]);
+      }catch(e){console.warn('loadState error',e)}
+    }
+    function saveState() {
+      localStorage.setItem('agrinho_state_v1', JSON.stringify({
+        dollars: state.dollars,
+        reals: state.reals,
+        seeds: state.seeds,
+        gems: state.gems,
+        alerts: state.alerts,
+        ownedChars: Array.from(state.ownedChars)
+      }));
+      renderHud();
+    }
+
+    // UI render
+    const dollarsEl = document.getElementById('dollars');
+    const realsEl = document.getElementById('reals');
+    const seedsEl = document.getElementById('seeds');
+    const gemsEl = document.getElementById('gems');
+    const alertsList = document.getElementById('alertsList');
+    const alertsCount = document.getElementById('alertsCount');
+    const currentChar = document.getElementById('currentChar');
+    const rouletteResult = document.getElementById('rouletteResult');
+
+    function renderHud(){
+      dollarsEl.textContent = state.dollars.toFixed(2);
+      realsEl.textContent = state.reals.toFixed(2);
+      seedsEl.textContent = state.seeds;
+      gemsEl.textContent = state.gems;
+      alertsList.innerHTML = '';
+      state.alerts.slice().reverse().forEach(a=>{
+        const d = document.createElement('div'); d.className='small'; d.textContent = `• ${a}`;
+        alertsList.appendChild(d);
+      });
+      alertsCount.textContent = state.alerts.length;
+      saveState();
+    }
+
+    // Alerts + Notification API
+    function pushAlert(msg, notify=false){
+      const ts = new Date().toLocaleTimeString();
+      const full = `${ts} — ${msg}`;
+      state.alerts.push(full);
+      renderHud();
+      if (notify && window.Notification && Notification.permission === 'granted') {
+        new Notification('Projeto Agrinho — Alerta', { body: msg, icon: '' });
+      }
+      console.log('ALERT:', full);
+    }
+
+    document.getElementById('notifyRequest').addEventListener('click', async ()=>{
+      if (!('Notification' in window)) { alert('Seu navegador não suporta Notification API'); return; }
+      if (Notification.permission === 'granted') { alert('Permissão já concedida'); return; }
+      const perm = await Notification.requestPermission();
+      alert('Permissão: '+perm);
+    });
+
+    // Roleta (probabilidades)
+    function spinRoulette(){
+      const r = Math.random();
+      let message = '';
+      if (r < 0.50) {
+        // moeda (dólar ou real)
+        if (Math.random() < 0.5) {
+          const amt = +(Math.random()*5 + 1).toFixed(2);
+          state.dollars += amt;
+          message = `Ganhou $${amt} (dólares)`;
+        } else {
+          const amt = +(Math.random()*10 + 1).toFixed(2);
+          state.reals += amt;
+          message = `Ganhou R$${amt} (reais)`;
+        }
+      } else if (r < 0.75) {
+        const s = 1 + Math.floor(Math.random()*5);
+        state.seeds += s;
+        message = `Ganhou ${s} sementes`;
+      } else if (r < 0.80) {
+        const g = 1 + Math.floor(Math.random()*2);
+        state.gems += g;
+        message = `Ganhou ${g} gemas (rara)`;
+      } else {
+        message = 'Não ganhou nada. Tente novamente!';
+      }
+      rouletteResult.textContent = message;
+      pushAlert('Roleta: ' + message, true);
+      renderHud();
+    }
+    document.getElementById('spinRoulette').addEventListener('click', spinRoulette);
+
+    // Simulação simples das máquinas
+    function waterMachines(){
+      // rega: consome sementes (simples regra), melhora chance de colheita
+      if (state.seeds > 0) {
+        state.seeds = Math.max(0, state.seeds - 1);
+        pushAlert('Máquina regou as plantas (consumiu 1 semente)', true);
+        // recompensa pequena
+        state.reals += 0.25;
+      } else {
+        pushAlert('Máquina regou mas faltaram sementes. Ainda assim regou.', true);
+      }
+      renderHud();
+    }
+    function collectMachines(){
+      // colhe e dá dinheiro
+      const collected = 1 + Math.floor(Math.random()*4);
+      const gained = +(collected * (Math.random()*2 + 0.5)).toFixed(2);
+      // paga em dólares ou reais aleatoriamente
+      if (Math.random() < 0.5) state.dollars += gained;
+      else state.reals += gained;
+      pushAlert(`Máquina colheu ${collected} plantas e gerou ${gained.toFixed(2)}`, true);
+      renderHud();
+    }
+    function sprayMachines(){
+      // aplica agrotóxico: remove pragas e pode gerar alerta de responsabilidade
+      pushAlert('Máquina aplicou agrotóxico. Lembre-se da responsabilidade ambiental!', true);
+      // chance de multa se usado "demais" (aleatório)
+      if (Math.random() < 0.12) {
+        const fine = +(Math.random()*3 + 1).toFixed(2);
+        state.reals = Math.max(0, state.reals - fine);
+        pushAlert(`Alerta regulatório: multa de R$${fine.toFixed(2)} por uso indevido`, true);
+      }
+      renderHud();
+    }
+
+    document.getElementById('waterMachines').addEventListener('click', waterMachines);
+    document.getElementById('collectMachines').addEventListener('click', collectMachines);
+    document.getElementById('sprayMachines').addEventListener('click', sprayMachines);
+
+    // Simulate tick: generate random pests or needs water
+    function simulateTick(){
+      if (Math.random() < 0.05) {
+        pushAlert('Praga detectada em área da plantação!', true);
+      }
+      if (Math.random() < 0.07) {
+        pushAlert('Planta precisa de água!', false);
+      }
+      // small passive income
+      if (Math.random() < 0.2) {
+        state.reals += 0.10;
+      }
+      renderHud();
+    }
+    document.getElementById('simulateTick').addEventListener('click', simulateTick);
+
+    // Personagens / Loja
+    function openShopModal(){
+      const root = document.getElementById('modalRoot');
+      root.innerHTML = '';
+      const overlay = document.createElement('div'); overlay.className='overlay';
+      const modal = document.createElement('div'); modal.className='modal';
+      modal.innerHTML = `<h3>Loja de Personagens</h3>
+      <p class="small">2 gratuitos; 25 comuns; 25 incomuns; 25 menos baratas; 9 raras; 15 ultra-raras; 10 lendárias; 50 especiais.</p>
+      <div style="display:flex;gap:8px;margin:8px 0"><button id="closeShop" class="ghost">Fechar</button></div>
+      <div class="catalog" id="catalogList"></div>
+      `;
+      overlay.appendChild(modal); root.appendChild(overlay);
+
+      document.getElementById('closeShop').addEventListener('click', ()=> root.innerHTML='');
+
+      const cl = modal.querySelector('#catalogList');
+      state.catalog.forEach(ch=>{
+        const row = document.createElement('div'); row.className='char';
+        const left = document.createElement('div'); left.innerHTML = `<div><strong>${ch.name}</strong> <span class="small">[${ch.rarity}]</span></div><div class="small">Preço $${ch.priceDollars} / R$${ch.priceReals}</div>`;
+        const right = document.createElement('div');
+        const btn = document.createElement('button'); btn.className='btn';
+        btn.textContent = state.ownedChars.has(ch.id)?'Usar':'Comprar';
+        btn.addEventListener('click', ()=>{
+          if (state.ownedChars.has(ch.id)) {
+            currentChar.textContent = ch.name + ' ('+ch.rarity+')';
+            pushAlert('Personagem selecionado: ' + ch.name);
+            root.innerHTML='';
+            return;
+          }
+          // tenta pagar
+          if (state.dollars >= ch.priceDollars && ch.priceDollars > 0) {
+            state.dollars -= ch.priceDollars;
+            state.ownedChars.add(ch.id);
+            btn.textContent = 'Usar';
+            pushAlert(`Comprou ${ch.name} por $${ch.priceDollars}`, true);
+            renderHud();
+          } else if (state.reals >= ch.priceReals && ch.priceReals > 0) {
+            state.reals -= ch.priceReals;
+            state.ownedChars.add(ch.id);
+            btn.textContent = 'Usar';
+            pushAlert(`Comprou ${ch.name} por R$${ch.priceReals}`, true);
+            renderHud();
+          } else {
+            alert('Saldo insuficiente. Ganhe moedas na roleta ou coletando plantas.');
+          }
+        });
+        right.appendChild(btn);
+        row.appendChild(left); row.appendChild(right);
+        cl.appendChild(row);
+      });
+    }
+    document.getElementById('openShop').addEventListener('click', openShopModal);
+    document.getElementById('charsBtn').addEventListener('click', openShopModal);
+
+    // Play flow: show tutorial after clicking Jogar
+    document.getElementById('playBtn').addEventListener('click', ()=> {
+      const root = document.getElementById('modalRoot');
+      root.innerHTML = '';
+      const overlay = document.createElement('div'); overlay.className='overlay';
+      const modal = document.createElement('div'); modal.className='modal';
+      modal.innerHTML = `<h3>Bem-vindo ao jogo Projeto Agrinho</h3>
+        <ol>
+          <li>Clique nos botões Máquinas para regar, colher e aplicar agrotóxico.</li>
+          <li>Gire a roleta para ganhar moedas, sementes ou gemas.</li>
+          <li>Abra Personagens para selecionar ou comprar personagens.</li>
+          <li>Use WASD / setas para mover no desktop; toque na tela para mover no celular.</li>
+        </ol>
+        <div style="display:flex;gap:8px;justify-content:flex-end"><button id="startPlay" class="btn">Começar</button></div>
+      `;
+      overlay.appendChild(modal); root.appendChild(overlay);
+      modal.querySelector('#startPlay').addEventListener('click', ()=> root.innerHTML='');
+    });
+
+    // Player movement (keyboard + touch)
+    const player = document.getElementById('player');
+    const field = document.getElementById('field');
+    let px = field.clientWidth/2 - 28, py = 20;
+    function setPlayerPos(){
+      player.style.left = Math.max(0, Math.min(field.clientWidth-56, px)) + 'px';
+      player.style.bottom = Math.max(0, Math.min(field.clientHeight-56, py)) + 'px';
+    }
+    setPlayerPos();
+
+    const speed = 6;
+    const keys = {};
+    window.addEventListener('keydown', e => { keys[e.key.toLowerCase()]=true; });
+    window.addEventListener('keyup', e => { keys[e.key.toLowerCase()]=false; });
+
+    function gameLoop(){
+      let moved=false;
+      if (keys['arrowleft']||keys['a']) { px -= speed; moved=true; }
+      if (keys['arrowright']||keys['d']) { px += speed; moved=true; }
+      if (keys['arrowup']||keys['w']) { py += speed; moved=true; }
+      if (keys['arrowdown']||keys['s']) { py -= speed; moved=true; }
+      if (moved) setPlayerPos();
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    // Touch to move: click on field to move towards point
+    let touchTarget = null;
+    field.addEventListener('click', (e)=>{
+      const rect = field.getBoundingClientRect();
+      const tx = e.clientX - rect.left - 28;
+      const ty = rect.bottom - e.clientY - 28; // bottom coordinate
+      touchTarget = {tx,ty};
+      moveToTarget();
+    });
+
+    function moveToTarget(){
+      if (!touchTarget) return;
+      const dx = touchTarget.tx - px, dy = touchTarget.ty - py;
+      const dist = Math.hypot(dx,dy);
+      if (dist < 4) { touchTarget = null; return; }
+      px += dx/dist * 4;
+      py += dy/dist * 4;
+      setPlayerPos();
+      requestAnimationFrame(moveToTarget);
+    }
+
+    // Inicialização
+    createCatalog();
+    loadState();
+    renderHud();
+
+    // pequena simulação automática de eventos que podem disparar alertas (a cada 20s)
+    setInterval(()=>{
+      if (Math.random() < 0.12) {
+        pushAlert('Monitor: detecção de pragas em setor B', true);
+      }
+      if (Math.random() < 0.08) {
+        pushAlert('Monitor: falta de irrigação em setor A', true);
+      }
+      // save state periodical
+      saveState();
+    }, 20000);
+
+    // Sugestão: para notificações fora do jogo quando o navegador está fechado, você precisa de um backend que envie Push (Web Push / FCM).
+    // Aqui usamos Notification API quando a aba está aberta ou em background (se o navegador permitir).
+  </script>
+</body>
+</html>
